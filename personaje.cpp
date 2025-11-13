@@ -161,11 +161,14 @@ void personaje::actualizarFisica()
             if (velocidadY > 0 && bottomHitbox >= topPlataforma - 5) {
 
                 // Reposicionar al personaje encima de la plataforma
-                // Altura real de la hitbox en escena
-                qreal alturaHitbox = hitbox->sceneBoundingRect().height();
+                // Información de la hitbox respecto al sprite
+                const QRectF rectoHitbox = hitbox->rect();
+                const qreal alturaHitbox = rectoHitbox.height();
+                const qreal desplazamientoHitbox = rectoHitbox.top();
 
-                // Mover al personaje para que la hitbox quede justo encima de la plataforma
-                qreal nuevaY = topPlataforma - alturaHitbox;
+                // Mover al personaje para que la parte inferior de la hitbox
+                // quede alineada con la plataforma en coordenadas de escena
+                const qreal nuevaY = topPlataforma - (desplazamientoHitbox + alturaHitbox);
 
                 // Ajustar al personaje (NO a la hitbox)
                 setY(nuevaY);
