@@ -1,5 +1,6 @@
 #include "niveles.h"
 #include <QDebug>
+#include <vector>
 
 QGraphicsRectItem* crearPlataforma(QGraphicsScene *scene, int x, int y, int ancho, int alto, QColor color = QColor("#654321"))
 {
@@ -22,16 +23,22 @@ niveles::niveles(int numNivel, QWidget *parent)
     // --- Configuración base ---
     setScene(scene);
     setFixedSize(800, 600);
-    scene->setSceneRect(0, 0, 1920, 1080);   // Nivel ancho de 2000 px
     setFocusPolicy(Qt::StrongFocus);
     setRenderHint(QPainter::Antialiasing, false);
     setRenderHint(QPainter::SmoothPixmapTransform, true);
 
     // --- Fondo ---
     QPixmap bg(":/backgrounds/background.jpg");
-    QGraphicsPixmapItem *background = new QGraphicsPixmapItem(bg);
-    background->setZValue(0);
-    scene->addItem(background);
+    const int backgroundTiles = 2;
+    const int levelWidth = bg.width() * backgroundTiles;
+    scene->setSceneRect(0, 0, levelWidth, 1080);
+
+    for (int i = 0; i < backgroundTiles; ++i) {
+        QGraphicsPixmapItem *background = new QGraphicsPixmapItem(bg);
+        background->setPos(i * bg.width(), 0);
+        background->setZValue(0);
+        scene->addItem(background);
+    }
 
 
     // --- Crear personaje ---
@@ -41,12 +48,37 @@ niveles::niveles(int numNivel, QWidget *parent)
     player->setPos(300, 200);
 
     //-- Crear Plataformas --
-    crearPlataforma(scene, 600, 860, 200, 20);
-    crearPlataforma(scene, 900, 500, 250, 20);
-    crearPlataforma(scene, 1400, 700, 180, 20);
-    crearPlataforma(scene, 600, 400, 150, 20, QColor("#855E42"));
+    struct PlataformaInfo {
+        int x;
+        int y;
+        int ancho;
+        int alto;
+        QColor color;
+    };
 
-    QGraphicsRectItem *suelo = new QGraphicsRectItem(0, 780, 1920, 40);
+    const std::vector<PlataformaInfo> plataformas = {
+        {420, 720, 220, 20, QColor("#6F4E37")},
+        {700, 660, 180, 20, QColor("#855E42")},
+        {950, 700, 160, 20, QColor("#6F4E37")},
+        {1160, 660, 200, 20, QColor("#855E42")},
+        {1400, 700, 180, 20, QColor("#6F4E37")},
+        {1600, 650, 160, 20, QColor("#855E42")},
+        {1800, 690, 150, 20, QColor("#6F4E37")},
+        {1980, 650, 180, 20, QColor("#855E42")},
+        {2200, 700, 200, 20, QColor("#6F4E37")},
+        {2420, 660, 220, 20, QColor("#855E42")},
+        {2660, 710, 160, 20, QColor("#6F4E37")},
+        {2880, 670, 190, 20, QColor("#855E42")},
+        {3100, 720, 210, 20, QColor("#6F4E37")},
+        {3340, 660, 180, 20, QColor("#855E42")},
+        {3560, 700, 220, 20, QColor("#6F4E37")}
+    };
+
+    for (const auto &plataforma : plataformas) {
+        crearPlataforma(scene, plataforma.x, plataforma.y, plataforma.ancho, plataforma.alto, plataforma.color);
+    }
+
+    QGraphicsRectItem *suelo = new QGraphicsRectItem(0, 780, levelWidth, 40);
     suelo->setBrush(QColor("#5B3A29"));   // marrón
     suelo->setPen(Qt::NoPen);
     suelo->setZValue(1);
