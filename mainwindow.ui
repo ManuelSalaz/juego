@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>953</width>
+    <height>628</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QPushButton" name="btnNivel1">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>400</y>
+      <width>121</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton {
+    background-color: #2e2e2e;          /* Fondo oscuro */
+    color: #f0c674;                     /* Dorado suave */
+    border: 2px solid #c8a045;          /* Borde dorado */
+    border-radius: 10px;                /* Bordes redondeados */
+    padding: 8px 15px;                  /* Espaciado interno */
+    font-family: &quot;Segoe UI&quot;;            /* Fuente moderna */
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    transition: all 0.2s ease-in-out;   /* Transición suave */
+}
+
+QPushButton:hover {
+    background-color: #c8a045;          /* Fondo dorado */
+    color: #2e2e2e;                     /* Texto oscuro */
+    border: 2px solid #f0c674;
+    transform: scale(1.05);             /* Ligero aumento */
+}
+
+QPushButton:pressed {
+    background-color: #a37c27;          /* Dorado más oscuro */
+    color: white;
+    border: 2px solid #c8a045;
+    transform: scale(0.97);
+}
+
+QPushButton:disabled {
+    background-color: #555555;
+    color: #aaaaaa;
+    border: 2px solid #777777;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Nivel 1</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnNivel2">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>400</y>
+      <width>121</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton {
+    background-color: #2e2e2e;          /* Fondo oscuro */
+    color: #f0c674;                     /* Dorado suave */
+    border: 2px solid #c8a045;          /* Borde dorado */
+    border-radius: 10px;                /* Bordes redondeados */
+    padding: 8px 15px;                  /* Espaciado interno */
+    font-family: &quot;Segoe UI&quot;;            /* Fuente moderna */
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    transition: all 0.2s ease-in-out;   /* Transición suave */
+}
+
+QPushButton:hover {
+    background-color: #c8a045;          /* Fondo dorado */
+    color: #2e2e2e;                     /* Texto oscuro */
+    border: 2px solid #f0c674;
+    transform: scale(1.05);             /* Ligero aumento */
+}
+
+QPushButton:pressed {
+    background-color: #a37c27;          /* Dorado más oscuro */
+    color: white;
+    border: 2px solid #c8a045;
+    transform: scale(0.97);
+}
+
+QPushButton:disabled {
+    background-color: #555555;
+    color: #aaaaaa;
+    border: 2px solid #777777;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Nivel 2</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnNivel3">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>400</y>
+      <width>121</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton {
+    background-color: #2e2e2e;          /* Fondo oscuro */
+    color: #f0c674;                     /* Dorado suave */
+    border: 2px solid #c8a045;          /* Borde dorado */
+    border-radius: 10px;                /* Bordes redondeados */
+    padding: 8px 15px;                  /* Espaciado interno */
+    font-family: &quot;Segoe UI&quot;;            /* Fuente moderna */
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    transition: all 0.2s ease-in-out;   /* Transición suave */
+}
+
+QPushButton:hover {
+    background-color: #c8a045;          /* Fondo dorado */
+    color: #2e2e2e;                     /* Texto oscuro */
+    border: 2px solid #f0c674;
+    transform: scale(1.05);             /* Ligero aumento */
+}
+
+QPushButton:pressed {
+    background-color: #a37c27;          /* Dorado más oscuro */
+    color: white;
+    border: 2px solid #c8a045;
+    transform: scale(0.97);
+}
+
+QPushButton:disabled {
+    background-color: #555555;
+    color: #aaaaaa;
+    border: 2px solid #777777;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Nivel 3</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnRegistrar">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>190</y>
+      <width>101</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton {
+    background-color: #2e2e2e;          /* Fondo oscuro */
+    color: #f0c674;                     /* Dorado suave */
+    border: 2px solid #c8a045;          /* Borde dorado */
+    border-radius: 10px;                /* Bordes redondeados */
+    padding: 8px 15px;                  /* Espaciado interno */
+    font-family: &quot;Segoe UI&quot;;            /* Fuente moderna */
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    transition: all 0.2s ease-in-out;   /* Transición suave */
+}
+
+QPushButton:hover {
+    background-color: #c8a045;          /* Fondo dorado */
+    color: #2e2e2e;                     /* Texto oscuro */
+    border: 2px solid #f0c674;
+    transform: scale(1.05);             /* Ligero aumento */
+}
+
+QPushButton:pressed {
+    background-color: #a37c27;          /* Dorado más oscuro */
+    color: white;
+    border: 2px solid #c8a045;
+    transform: scale(0.97);
+}
+
+QPushButton:disabled {
+    background-color: #555555;
+    color: #aaaaaa;
+    border: 2px solid #777777;
+}
+</string>
+    </property>
+    <property name="text">
+     <string>Registro</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="txtNombre">
+    <property name="geometry">
+     <rect>
+      <x>370</x>
+      <y>190</y>
+      <width>181</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QLineEdit {
+    background-color: #2e2e2e;          /* Fondo oscuro */
+    color: #f0c674;                     /* Texto dorado */
+    border: 2px solid #c8a045;          /* Borde dorado */
+    border-radius: 8px;                 /* Bordes suaves */
+    padding: 6px 10px;                  /* Espaciado interno */
+    font-family: &quot;Segoe UI&quot;;
+    font-size: 13px;
+    selection-background-color: #c8a045; /* Fondo de selección */
+    selection-color: #1e1e1e;           /* Texto de selección */
+}
+
+QLineEdit:focus {
+    border: 2px solid #f0c674;          /* Resalta al enfocar */
+    background-color: #3a3a3a;          /* Un poco más claro */
+    color: #fff4c1;                     /* Texto más claro */
+}
+
+QLineEdit:disabled {
+    background-color: #444444;
+    color: #aaaaaa;
+    border: 2px solid #666666;
+}
+</string>
+    </property>
+    <property name="placeholderText">
+     <string>Ingresa tu nombre</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="txtUsuario">
+    <property name="geometry">
+     <rect>
+      <x>580</x>
+      <y>190</y>
+      <width>181</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QLineEdit {
+    background-color: #2e2e2e;          /* Fondo oscuro */
+    color: #f0c674;                     /* Texto dorado */
+    border: 2px solid #c8a045;          /* Borde dorado */
+    border-radius: 8px;                 /* Bordes suaves */
+    padding: 6px 10px;                  /* Espaciado interno */
+    font-family: &quot;Segoe UI&quot;;
+    font-size: 13px;
+    selection-background-color: #c8a045; /* Fondo de selección */
+    selection-color: #1e1e1e;           /* Texto de selección */
+}
+
+QLineEdit:focus {
+    border: 2px solid #f0c674;          /* Resalta al enfocar */
+    background-color: #3a3a3a;          /* Un poco más claro */
+    color: #fff4c1;                     /* Texto más claro */
+}
+
+QLineEdit:disabled {
+    background-color: #444444;
+    color: #aaaaaa;
+    border: 2px solid #666666;
+}
+</string>
+    </property>
+    <property name="placeholderText">
+     <string>Ingresa tu usuario</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>110</y>
+      <width>421</width>
+      <height>431</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="pixmap">
+     <pixmap resource="resources.qrc">:/logos/Vikings-Logo-PNG-Images.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>30</y>
+      <width>491</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Viking-Normal</family>
+      <pointsize>24</pointsize>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background: transparent;
+    color: #f0c674;  </string>
+    </property>
+    <property name="text">
+     <string>Honor Of Vikings</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignmentFlag::AlignCenter</set>
+    </property>
+   </widget>
+   <zorder>label</zorder>
+   <zorder>btnNivel1</zorder>
+   <zorder>btnNivel2</zorder>
+   <zorder>btnNivel3</zorder>
+   <zorder>btnRegistrar</zorder>
+   <zorder>txtNombre</zorder>
+   <zorder>txtUsuario</zorder>
+   <zorder>label_2</zorder>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>
