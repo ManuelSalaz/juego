@@ -7,7 +7,7 @@
 personaje::personaje() {
     spriteSheet.load(":/sprites/Viking-Sheet.png");
 
-    hitbox = new QGraphicsRectItem(100, 240, 80, 50, this);
+    hitbox = new QGraphicsRectItem(100, 130, 80, 50, this);
     hitbox->setBrush(QBrush(QColor(255, 0, 0, 100)));  // rojo semitransparente
     hitbox->setPen(Qt::NoPen);
 
