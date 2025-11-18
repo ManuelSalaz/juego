@@ -21,6 +21,7 @@ public:
     void actualizarFisica();
     void deslizar();
     void atacar();
+    QRectF posHitbox();
 private slots:
     void actualizarFrame();
 

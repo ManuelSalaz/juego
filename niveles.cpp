@@ -69,7 +69,7 @@ void niveles::actualizarEscena()
     for (enemigos *centinela : std::as_const(centinelas)) {
         if (!centinela)
             continue;
-        centinela->actualizarVision(player->pos());
+        centinela->actualizarVision(player->posHitbox());
         centinela->mover();
     }
 
@@ -178,6 +178,7 @@ void niveles::generarCentinelas()
         enemigos *centinela = new enemigos(this);
         centinela->setZValue(2);
         centinela->setPos(pos);
+        centinela->configurarPatrulla(pos.x() - 80, pos.x() + 80, 1.2);
         centinelas.append(centinela);
         scene->addItem(centinela);
     }

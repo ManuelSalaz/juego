@@ -65,27 +65,28 @@ void personaje::actualizarFrame() {
     if (!mirandoDerecha)
         frame = frame.transformed(QTransform().scale(-1, 1));
 
-    setPixmap(frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    frame = frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    setPixmap(frame);
 }
 
 void personaje::moverIzquierda() {
     velocidadX = -velocidad;   // ← establece movimiento continuo
     actualizarDireccion(false);
     if (!accionEspecialActiva)
-        cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump);
+        cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump, true);
 }
 
 void personaje::moverDerecha() {
     velocidadX = velocidad;    // ← establece movimiento continuo
     actualizarDireccion(true);
     if (!accionEspecialActiva)
-        cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump);
+        cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump, true);
 }
 
 void personaje::parar() {
     velocidadX = 0;            // ← detiene el movimiento lateral
     if (enSuelo && !accionEspecialActiva)
-        cambiarAnimacion(EstadoAnimacion::Idle);
+        cambiarAnimacion(EstadoAnimacion::Idle, true);
 }
 
 
@@ -129,6 +130,11 @@ void personaje::atacar() {
         accionEspecialActiva = false;
         cambiarAnimacion(EstadoAnimacion::Idle);
     });
+}
+
+QRectF personaje::posHitbox()
+{
+    return hitbox->sceneBoundingRect();
 }
 
 
@@ -209,7 +215,8 @@ void personaje::cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame)
     QPixmap frame = animacionActual->at(frameActual);
     if (!mirandoDerecha)
         frame = frame.transformed(QTransform().scale(-1, 1));
-    setPixmap(frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    frame = frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    setPixmap(frame);
 }
 
 void personaje::actualizarDireccion(bool aLaDerecha)

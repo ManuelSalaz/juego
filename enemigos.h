@@ -16,13 +16,19 @@ public:
 
     // Movimiento muy simple por ahora
     void mover();
+    void configurarPatrulla(qreal x1, qreal x2, qreal velocidad = 1.5);
 
     // Centinela: actualiza el estado de detección según la posición del objetivo
-    void actualizarVision(const QPointF &objetivo);
+    void actualizarVision(const QRectF  &objetivo);
     bool jugadorDetectado() const;
     qreal rangoVision() const;
 
 private:
+    qreal limiteIzq;
+    qreal limiteDer;
+    qreal velocidadPatrulla;
+    int direccion = 1;     // 1 = derecha, -1 = izquierda
+    int tiempoEspera = 0;
     float velX;
     float velY;
     qreal radioVision;
