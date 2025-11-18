@@ -5,8 +5,10 @@
 #include <QGraphicsScene>
 #include <QTimer>
 #include <QKeyEvent>
+#include <QVector>
 
 #include "personaje.h"
+#include "enemigos.h"
 
 class niveles : public QGraphicsView
 {
@@ -28,7 +30,11 @@ private:
     personaje *player;
     QTimer *timerUpdate;
     int nivelActual;
-    bool suelo;
+    QVector<enemigos*> centinelas;
+
+    void configurarEscenaBase();
+    void crearPlataformas();
+    void generarCentinelas();
 };
 
 #endif // NIVELES_H

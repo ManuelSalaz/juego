@@ -3,8 +3,10 @@
 #include <QDebug>
 #include <QBrush>
 #include <QPen>
+#include <QString>
 
-personaje::personaje() {
+personaje::personaje()
+    : animacionActual(nullptr), estadoActual(EstadoAnimacion::Idle), framesDesdeSuelo(0), coyoteFrames(4) {
     spriteSheet.load(":/sprites/Viking-Sheet.png");
 
     hitbox = new QGraphicsRectItem(100, 130, 80, 50, this);
@@ -19,15 +21,15 @@ personaje::personaje() {
     int frameHeight = 84;    // 420 / 5
 
     // ---- Cargar animaciones ----
-    framesIdle = extraerFrames(0 * frameHeight, frameWidth, frameHeight, 8);
-    framesRun  = extraerFrames(2 * frameHeight, frameWidth, frameHeight, 8);
-    framesJump = extraerFrames(6 * frameHeight, frameWidth, frameHeight, 3);
-    framesSlide = extraerFrames(15 * frameHeight, frameWidth, frameHeight, 7);
-    framesAttack = extraerFrames(8 * frameHeight, frameWidth, frameHeight, 4);
+    animaciones[EstadoAnimacion::Idle] = extraerFrames(0 * frameHeight, frameWidth, frameHeight, 8);
+    animaciones[EstadoAnimacion::Run] = extraerFrames(2 * frameHeight, frameWidth, frameHeight, 8);
+    animaciones[EstadoAnimacion::Jump] = extraerFrames(6 * frameHeight, frameWidth, frameHeight, 3);
+    animaciones[EstadoAnimacion::Slide] = extraerFrames(15 * frameHeight, frameWidth, frameHeight, 7);
+    animaciones[EstadoAnimacion::Attack] = extraerFrames(8 * frameHeight, frameWidth, frameHeight, 4);
 
 
-    animacionActual = &framesIdle;
     frameActual = 0;
+    cambiarAnimacion(EstadoAnimacion::Idle, true);
 
     setPixmap(animacionActual->at(frameActual)
                   .scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -50,7 +52,10 @@ void personaje::actualizarFrame() {
     static int contador = 0;
     contador++;
 
-    int intervalo = (animacionActual == &framesIdle) ? 4 : 2;
+    if (!animacionActual)
+        return;
+
+    int intervalo = (estadoActual == EstadoAnimacion::Idle) ? 4 : 2;
     if (contador % intervalo != 0)
         return;
 
@@ -61,42 +66,37 @@ void personaje::actualizarFrame() {
         frame = frame.transformed(QTransform().scale(-1, 1));
 
     setPixmap(frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-
-    actualizarFisica();
-
 }
 
 void personaje::moverIzquierda() {
     velocidadX = -velocidad;   // ← establece movimiento continuo
-    animacionActual = enSuelo ? &framesRun : &framesJump;
-    mirandoDerecha = false;
+    actualizarDireccion(false);
+    if (!accionEspecialActiva)
+        cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump);
 }
 
 void personaje::moverDerecha() {
     velocidadX = velocidad;    // ← establece movimiento continuo
-    animacionActual = enSuelo ? &framesRun : &framesJump;
-    mirandoDerecha = true;
+    actualizarDireccion(true);
+    if (!accionEspecialActiva)
+        cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump);
 }
 
 void personaje::parar() {
     velocidadX = 0;            // ← detiene el movimiento lateral
-    if (enSuelo)
-        animacionActual = &framesIdle;
+    if (enSuelo && !accionEspecialActiva)
+        cambiarAnimacion(EstadoAnimacion::Idle);
 }
 
 
 void personaje::saltar() {
-    if (!enSuelo) return;
+    if (framesDesdeSuelo > coyoteFrames)
+        return;
+
     velocidadY = -13;
     enSuelo = false;
-    animacionActual = &framesJump;
-    frameActual = 0;
-
-    // 🔹 Impulso horizontal automático
-    if (mirandoDerecha)
-        velocidadX = velocidad * 1.6f;  // más impulso hacia delante
-    else
-        velocidadX = -velocidad * 1.6f;
+    framesDesdeSuelo = coyoteFrames + 1;
+    cambiarAnimacion(EstadoAnimacion::Jump, true);
 }
 
 void personaje::deslizar() {
@@ -104,8 +104,7 @@ void personaje::deslizar() {
 
     accionEspecialActiva = true;
 
-    animacionActual = &framesSlide;
-    frameActual = 0;
+    cambiarAnimacion(EstadoAnimacion::Slide, true);
 
     float velocidadOriginal = velocidadX;
     if (mirandoDerecha)
@@ -116,7 +115,7 @@ void personaje::deslizar() {
     QTimer::singleShot(700, [this, velocidadOriginal]() {
         velocidadX = 0;
         accionEspecialActiva = false;
-        animacionActual = &framesIdle;
+        cambiarAnimacion(EstadoAnimacion::Idle);
     });
 }
 
@@ -124,12 +123,11 @@ void personaje::atacar() {
     if (accionEspecialActiva) return;
     accionEspecialActiva = true;
 
-    animacionActual = &framesAttack;
-    frameActual = 0;
+    cambiarAnimacion(EstadoAnimacion::Attack, true);
 
     QTimer::singleShot(800, [this]() {
         accionEspecialActiva = false;
-        animacionActual = &framesIdle;
+        cambiarAnimacion(EstadoAnimacion::Idle);
     });
 }
 
@@ -152,7 +150,8 @@ void personaje::actualizarFisica()
     QList<QGraphicsItem*> colisiones = hitbox->collidingItems();
     for (QGraphicsItem *item : colisiones) {
 
-        if (item->data(0).toString() == "plataforma" || item->data(0).toString() == "suelo") {
+        const QString tipoItem = item->data(0).toString();
+        if (tipoItem == "plataforma" || tipoItem == "suelo") {
 
             qreal topPlataforma = item->sceneBoundingRect().top();
             qreal bottomHitbox = hitbox->sceneBoundingRect().bottom();
@@ -174,11 +173,12 @@ void personaje::actualizarFisica()
                 setY(nuevaY);
                 velocidadY = 0;
                 enSuelo = true;
+                framesDesdeSuelo = 0;
                 tocandoSuelo = true;
 
                 // Animación correcta
                 if (!accionEspecialActiva) {
-                    animacionActual = (velocidadX == 0) ? &framesIdle : &framesRun;
+                    cambiarAnimacion((velocidadX == 0) ? EstadoAnimacion::Idle : EstadoAnimacion::Run);
                 }
                 break;
             }
@@ -188,7 +188,46 @@ void personaje::actualizarFisica()
     // --- Si NO tocó piso ni plataforma ---
     if (!tocandoSuelo) {
         enSuelo = false;
+        if (framesDesdeSuelo <= coyoteFrames)
+            ++framesDesdeSuelo;
     }
+}
+
+void personaje::cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame)
+{
+    if (estadoActual == estado && !reiniciarFrame)
+        return;
+
+    estadoActual = estado;
+    animacionActual = &animaciones[estadoActual];
+    if (!animacionActual || animacionActual->isEmpty()) {
+        animacionActual = nullptr;
+        return;
+    }
+
+    if (reiniciarFrame || frameActual >= animacionActual->size())
+        frameActual = 0;
+
+    QPixmap frame = animacionActual->at(frameActual);
+    if (!mirandoDerecha)
+        frame = frame.transformed(QTransform().scale(-1, 1));
+    setPixmap(frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+}
+
+void personaje::actualizarDireccion(bool aLaDerecha)
+{
+    if (mirandoDerecha == aLaDerecha)
+        return;
+
+    mirandoDerecha = aLaDerecha;
+
+    if (!animacionActual || animacionActual->isEmpty())
+        return;
+
+    QPixmap frame = animacionActual->at(frameActual);
+    if (!mirandoDerecha)
+        frame = frame.transformed(QTransform().scale(-1, 1));
+    setPixmap(frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 }
 
 

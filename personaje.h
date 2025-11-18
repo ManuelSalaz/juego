@@ -2,9 +2,11 @@
 #define PERSONAJE_H
 
 #include <QGraphicsPixmapItem>
+#include <QGraphicsRectItem>
 #include <QObject>
 #include <QTimer>
 #include <QVector>
+#include <QMap>
 
 class personaje : public QObject, public QGraphicsPixmapItem {
     Q_OBJECT
@@ -23,28 +25,28 @@ private slots:
     void actualizarFrame();
 
 private:
+    enum class EstadoAnimacion { Idle, Run, Jump, Slide, Attack };
+
     QPixmap spriteSheet;
-    QVector<QPixmap> framesIdle;
-    QVector<QPixmap> framesRun;
-    QVector<QPixmap> framesSlide;
+    QMap<EstadoAnimacion, QVector<QPixmap>> animaciones;
     QVector<QPixmap> *animacionActual;
-    QVector<QPixmap> framesJump;
-    QVector<QPixmap> framesAttack;
+    EstadoAnimacion estadoActual;
     float velocidadY = 0;     // velocidad vertical
     float gravedad = 0.8;     // gravedad constante
     bool enSuelo = true;      // para evitar doble salto
     float velocidadX = 0;  // velocidad horizontal
     int frameActual;
     bool mirandoDerecha;
-    bool saltando = false;
-    bool deslizando = false;
-    bool atacando=false;
     bool accionEspecialActiva=false;
     float velocidad;
+    int framesDesdeSuelo;
+    int coyoteFrames;
     QGraphicsRectItem *hitbox;
     QTimer *animTimer;
 
     QVector<QPixmap> extraerFrames(int y, int frameWidth, int frameHeight, int numFrames);
+    void cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame = false);
+    void actualizarDireccion(bool aLaDerecha);
 
 };
 
