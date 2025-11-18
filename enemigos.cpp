@@ -8,10 +8,11 @@
 #include <QPixmap>
 #include <QRadialGradient>
 #include <QtGlobal>
+#include <QVariant>
 
 enemigos::enemigos(QObject *parent)
     : QObject(parent), velX(0.0f), velY(0.0f), radioVision(160.0), objetivoEnVision(false), areaVision(nullptr) {
-    setData(0, "enemigo_centinela");
+    setData(0, QVariant(QStringLiteral("enemigo_centinela")));
 
     spriteReposo = crearSpriteCentinela(QColor(255, 180, 0, 245), QColor(120, 60, 0, 255), QColor(35, 40, 45, 230),
                                         QColor(120, 220, 255, 220));
