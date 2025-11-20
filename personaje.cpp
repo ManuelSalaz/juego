@@ -52,9 +52,7 @@ void personaje::actualizarFrame() {
 
     if (!animacionActual || animacionActual->isEmpty()) return;
 
-    frameActual++;
-    if (frameActual >= animacionActual->size())
-        frameActual = 0;
+    frameActual = (frameActual + 1) % animacionActual->size();
 
     QPixmap frame = animacionActual->at(frameActual);
 
@@ -208,7 +206,8 @@ void personaje::actualizarFisica()
 
 void personaje::cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame)
 {
-    if (estadoActual == estado && animacionActual && !reiniciarFrame)
+    const bool mismaAnimacion = (estadoActual == estado);
+    if (mismaAnimacion && animacionActual && !reiniciarFrame)
         return;
 
     estadoActual = estado;
@@ -216,7 +215,7 @@ void personaje::cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame)
     if (animacionActual->isEmpty())
         return;
 
-    if (reiniciarFrame)
+    if (reiniciarFrame || !mismaAnimacion || frameActual >= animacionActual->size())
         frameActual = 0;
 
     QPixmap frame = animacionActual->at(frameActual);
