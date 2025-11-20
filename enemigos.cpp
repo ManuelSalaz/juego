@@ -11,7 +11,7 @@
 #include <QVariant>
 
 enemigos::enemigos(QObject *parent)
-    : QObject(parent), velX(0.0f), velY(0.0f), radioVision(160.0), objetivoEnVision(false), areaVision(nullptr) {
+    : QObject(parent), velX(0.0f), velY(0.0f), radioVision(80.0), objetivoEnVision(false), areaVision(nullptr) {
     setData(0, QVariant(QStringLiteral("enemigo_centinela")));
 
     spriteReposo = crearSpriteCentinela(QColor(255, 180, 0, 245), QColor(120, 60, 0, 255), QColor(35, 40, 45, 230),
@@ -27,17 +27,30 @@ enemigos::enemigos(QObject *parent)
     areaVision->setZValue(-1);  // que no tape al sprite
 }
 
-void enemigos::mover() {
-    // Movimiento lineal simple (por ahora los centinelas se mantienen quietos)
-    if (!qFuzzyIsNull(velX) || !qFuzzyIsNull(velY))
-        setPos(x() + velX, y() + velY);
+void enemigos::mover()
+{
+    // Lógica de patrulla
+    if (patrullaMin != patrullaMax) {
+
+        setPos(x() + velX, y());
+
+        if (x() < patrullaMin) {
+            velX = velPatrulla;
+        }
+        else if (x() > patrullaMax) {
+            velX = -velPatrulla;
+        }
+    }
 }
 
-void enemigos::actualizarVision(const QPointF &objetivo) {
+void enemigos::actualizarVision(const QRectF &objetivo)
+{
     if (!areaVision)
         return;
 
-    QLineF distancia(mapToScene(0, 0), objetivo);
+    QPointF centroObjetivo = objetivo.center();
+    QLineF distancia(mapToScene(0, 0), centroObjetivo);
+
     bool detectado = distancia.length() <= radioVision;
 
     if (detectado == objetivoEnVision)
@@ -45,16 +58,29 @@ void enemigos::actualizarVision(const QPointF &objetivo) {
 
     objetivoEnVision = detectado;
 
-    const QColor relleno = detectado ? QColor(255, 69, 0, 80) : QColor(255, 215, 0, 25);
-    const QColor borde = detectado ? QColor(220, 20, 60, 200) : QColor(255, 215, 0, 160);
+    const QColor relleno = detectado ? QColor(255, 69, 0, 80)
+                                     : QColor(255, 215, 0, 25);
+    const QColor borde   = detectado ? QColor(220, 20, 60, 200)
+                                   : QColor(255, 215, 0, 160);
+
     areaVision->setBrush(relleno);
     areaVision->setPen(QPen(borde, 2, Qt::DashLine));
 
     aplicarSprite(objetivoEnVision ? spriteAlerta : spriteReposo);
 }
 
+
 bool enemigos::jugadorDetectado() const {
     return objetivoEnVision;
+}
+
+void enemigos::configurarPatrulla(double xMin, double xMax, double velocidad)
+{
+    patrullaMin = xMin;
+    patrullaMax = xMax;
+    velPatrulla = velocidad;
+
+    velX = velocidad; // empieza moviéndose a la derecha
 }
 
 qreal enemigos::rangoVision() const {

@@ -42,7 +42,7 @@ niveles::niveles(int numNivel, QWidget *parent)
     player = new personaje();
     scene->addItem(player);
     player->setZValue(2);
-    player->setPos(300, 200);
+    player->setPos(100, 550);
 
     crearPlataformas();
     generarCentinelas();
@@ -61,16 +61,26 @@ void niveles::actualizarEscena()
     if (!player) return;
 
     player->actualizarFisica();
-
     // --- Cámara sigue al jugador con un pequeño offset vertical ---
     QPointF centro = player->pos();
     centerOn(centro.x(), centro.y() - 100);  // mueve el foco 100px hacia abajo
+
+    if(centro.x()<0){
+        player->setPos(0, 600);
+    }
+
+    if(centro.x()>3700){
+        player->setPos(3700, 600);
+    }
 
     for (enemigos *centinela : std::as_const(centinelas)) {
         if (!centinela)
             continue;
         centinela->actualizarVision(player->posHitbox());
         centinela->mover();
+        if (centinela->jugadorDetectado()){
+            player->setPos(0, 600);
+        }
     }
 
 }
@@ -135,8 +145,8 @@ void niveles::configurarEscenaBase()
 void niveles::crearPlataformas()
 {
     const std::vector<PlataformaInfo> plataformas = {
-        {420, 720, 220, 20, QColor("#6F4E37")},
-        {700, 660, 180, 20, QColor("#855E42")},
+        {420, 620, 220, 20, QColor("#6F4E37")},
+        {700, 500, 180, 20, QColor("#855E42")},
         {950, 700, 160, 20, QColor("#6F4E37")},
         {1160, 660, 200, 20, QColor("#855E42")},
         {1400, 700, 180, 20, QColor("#6F4E37")},

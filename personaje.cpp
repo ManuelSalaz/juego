@@ -49,44 +49,47 @@ QVector<QPixmap> personaje::extraerFrames(int y, int frameWidth, int frameHeight
 }
 
 void personaje::actualizarFrame() {
-    static int contador = 0;
-    contador++;
 
-    if (!animacionActual)
-        return;
+    if (!animacionActual || animacionActual->isEmpty()) return;
 
-    int intervalo = (estadoActual == EstadoAnimacion::Idle) ? 4 : 2;
-    if (contador % intervalo != 0)
-        return;
+    frameActual++;
+    if (frameActual >= animacionActual->size())
+        frameActual = 0;
 
-    frameActual = (frameActual + 1) % animacionActual->size();
     QPixmap frame = animacionActual->at(frameActual);
 
     if (!mirandoDerecha)
         frame = frame.transformed(QTransform().scale(-1, 1));
 
     frame = frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
     setPixmap(frame);
 }
 
 void personaje::moverIzquierda() {
     velocidadX = -velocidad;   // ← establece movimiento continuo
+    hitbox->setRect(100, 130, 80, 50);
     actualizarDireccion(false);
     if (!accionEspecialActiva)
         cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump, true);
+
 }
 
 void personaje::moverDerecha() {
     velocidadX = velocidad;    // ← establece movimiento continuo
+    hitbox->setRect(100, 130, 80, 50);
     actualizarDireccion(true);
     if (!accionEspecialActiva)
         cambiarAnimacion(enSuelo ? EstadoAnimacion::Run : EstadoAnimacion::Jump, true);
+
 }
 
 void personaje::parar() {
     velocidadX = 0;            // ← detiene el movimiento lateral
-    if (enSuelo && !accionEspecialActiva)
+    if (enSuelo && !accionEspecialActiva){
         cambiarAnimacion(EstadoAnimacion::Idle, true);
+        hitbox->setRect(100, 130, 80, 50);
+    }
 }
 
 
@@ -105,15 +108,24 @@ void personaje::deslizar() {
 
     accionEspecialActiva = true;
 
+    // Mantener misma base de hitbox (bottom)
+    QRectF r = hitbox->rect();
+    qreal bottom = r.top() + r.height();
+
+    qreal nuevaAltura = 25;
+    qreal nuevaY = bottom - nuevaAltura;
+
+    hitbox->setRect(r.left(), nuevaY, r.width(), nuevaAltura);
+
     cambiarAnimacion(EstadoAnimacion::Slide, true);
 
     float velocidadOriginal = velocidadX;
-    if (mirandoDerecha)
-        velocidadX = velocidad + 2;   // Desliza rápido a la derecha
-    else
-        velocidadX = -velocidad - 2;  // Desliza rápido a la izquierda
+    velocidadX = mirandoDerecha ? velocidad + 2 : -velocidad - 2;
 
-    QTimer::singleShot(700, [this, velocidadOriginal]() {
+    QTimer::singleShot(700, [this]() {
+        // Restaurar hitbox completa
+        hitbox->setRect(100, 130, 80, 50);
+
         velocidadX = 0;
         accionEspecialActiva = false;
         cambiarAnimacion(EstadoAnimacion::Idle);
@@ -163,16 +175,11 @@ void personaje::actualizarFisica()
             qreal bottomHitbox = hitbox->sceneBoundingRect().bottom();
 
             // Solo si cae desde arriba
-            if (velocidadY > 0 && bottomHitbox >= topPlataforma - 5) {
+            if (velocidadY > 0 && bottomHitbox > topPlataforma) {
 
-                // Reposicionar al personaje encima de la plataforma
-                // Información de la hitbox respecto al sprite
                 const QRectF rectoHitbox = hitbox->rect();
                 const qreal alturaHitbox = rectoHitbox.height();
                 const qreal desplazamientoHitbox = rectoHitbox.top();
-
-                // Mover al personaje para que la parte inferior de la hitbox
-                // quede alineada con la plataforma en coordenadas de escena
                 const qreal nuevaY = topPlataforma - (desplazamientoHitbox + alturaHitbox);
 
                 // Ajustar al personaje (NO a la hitbox)
@@ -201,7 +208,7 @@ void personaje::actualizarFisica()
 
 void personaje::cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame)
 {
-    if (estadoActual == estado && !reiniciarFrame)
+    if (estadoActual == estado && animacionActual && !reiniciarFrame)
         return;
 
     estadoActual = estado;
@@ -230,9 +237,7 @@ void personaje::actualizarDireccion(bool aLaDerecha)
         return;
 
     QPixmap frame = animacionActual->at(frameActual);
-    if (!mirandoDerecha)
-        frame = frame.transformed(QTransform().scale(-1, 1));
-    setPixmap(frame.scaled(290, 290, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+
 }
 
 
