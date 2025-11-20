@@ -19,6 +19,7 @@ class niveles : public QGraphicsView
 public:
     explicit niveles(int numNivel = 1, QWidget *parent = nullptr);
 
+    void mostrarMensajeBloqueo();
 protected:
     // Para capturar el teclado en este nivel
     void keyPressEvent(QKeyEvent *event) override;
@@ -31,6 +32,8 @@ signals:
     void gameOver(QString motivo);
 
 private:
+    QLabel *mensajeBloqueoAtaque = nullptr;
+    bool jugadorRecibiendoDaño = false;
     int monedas = 0;
     QLabel *textoMonedas;
     QLabel * textoVidas;

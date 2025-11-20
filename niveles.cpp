@@ -1,4 +1,5 @@
 #include "niveles.h"
+#include "mainwindow.h"
 #include <QDebug>
 #include <QList>
 #include <QVariant>
@@ -17,7 +18,7 @@ struct PlataformaInfo {
 };
 
 QGraphicsRectItem* crearPlataforma(QGraphicsScene *scene, int x, int y, int ancho, int alto,
-                                   const QColor &color = QColor("#654321"))
+                                   const QColor &color = QColor(0,0,0,255))
 {
     QGraphicsRectItem *plataforma = new QGraphicsRectItem(x, y, ancho, alto);
     plataforma->setBrush(color);
@@ -51,6 +52,16 @@ niveles::niveles(int numNivel, QWidget *parent)
     textoMonedas->move(10, 40); // debajo del contador de vidas
     textoMonedas->raise();
 
+
+
+    // Mensaje Sigilo
+    mensajeBloqueoAtaque = new QLabel(this);
+    mensajeBloqueoAtaque->setText("No puedes atacar en una misión de sigilo");
+    mensajeBloqueoAtaque->setStyleSheet("color: red; font-size: 22px; font-weight: bold;");
+    mensajeBloqueoAtaque->setGeometry(200, 100, 500, 40);
+    mensajeBloqueoAtaque->hide();
+
+
     //-- Escena Base ----
     configurarEscenaBase();
 
@@ -78,6 +89,16 @@ niveles::niveles(int numNivel, QWidget *parent)
     // --- Timer general del nivel ---
     connect(timerUpdate, &QTimer::timeout, this, &niveles::actualizarEscena);
     timerUpdate->start(16); // ~60 FPS
+}
+
+void niveles::mostrarMensajeBloqueo()
+{
+    mensajeBloqueoAtaque->show();
+    mensajeBloqueoAtaque->raise();
+
+    QTimer::singleShot(1500, this, [this]() {
+        mensajeBloqueoAtaque->hide();
+    });
 }
 
 void niveles::actualizarEscena()
@@ -128,19 +149,38 @@ void niveles::actualizarEscena()
         }
 
         if (nivelActual == 1) {
+
+            // --- Si ya tomó daño, ignoramos todo ---
+            if (jugadorRecibiendoDaño)
+                continue;
+
             centinela->actualizarVision(player->posHitbox());
 
             if (centinela->jugadorDetectado()) {
-                player->setPos(0, 600);
-                player->perderVida();
-                textoVidas->setText(QString("Vidas: %1").arg(player->vidas));
 
-                if (player->vidas <= 0) {
-                    emit gameOver("muerte");
-                    return;
-                }
+                jugadorRecibiendoDaño = true;  // ← activamos el bloqueo
+                player->setEnabled(false);     // opcional, para congelar movimiento
+
+                // Mostrar sprite de alerta ya lo hace actualizarVision()
+
+                QTimer::singleShot(400, this, [this]() {
+
+                    // Aplicar daño
+                    player->setPos(0, 600);
+                    player->perderVida();
+                    textoVidas->setText(QString("Vidas: %1").arg(player->vidas));
+
+                    jugadorRecibiendoDaño = false; // ← se desbloquea después del daño
+                    player->setEnabled(true);
+
+                    if (player->vidas <= 0)
+                        emit gameOver("muerte");
+                });
+
+                return; // ← IMPORTANTE: detiene procesamiento de más enemigos
             }
         }
+
         centinela->mover();
     }
 
@@ -170,9 +210,10 @@ void niveles::actualizarEscena()
             monedasEscena.removeAt(i);
 
             monedas++;
-            textoMonedas->setText(QString("Monedas: %1").arg(monedas));
+            textoMonedas->setText(QString("Cofres: %1").arg(monedas));
 
             if (monedas >= 3) {
+                nivel1Completado = true;
                 QMessageBox::information(this, "¡Nivel completado!", "Has recolectado todas las monedas.");
                 emit gameOver("ganar");
                 return;
@@ -193,10 +234,14 @@ void niveles::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Space:
         player->saltar();
         break;
-    case Qt::Key_C:
+    case Qt::Key_S:
         player->deslizar();
         break;
     case Qt::Key_J:
+        if (nivelActual == 1) {
+            mostrarMensajeBloqueo();
+            break;
+        }
         player->atacar();
         break;
     default:
@@ -226,13 +271,59 @@ void niveles::configurarEscenaBase()
 
 
     if(nivelActual ==1){
+
+
+
         bg.load(":/backgrounds/background.jpg");
         QList<QPointF> posicionesMonedas = {
-            {500, 550},
-            {1000, 600},
-            {1600, 600},
+            {1000, 100},
+            {1500, 450},
             {2500, 600}
         };
+
+        QGraphicsPixmapItem *ctrlW = new QGraphicsPixmapItem(
+            QPixmap(":/sprites/w.png").scaled(50, 50, Qt::KeepAspectRatio)
+            );
+        ctrlW->setPos(65, 240); // Posición en el MAPA, no en la ventana
+        ctrlW->setZValue(3);
+        scene->addItem(ctrlW);
+
+        QGraphicsPixmapItem *ctrlA = new QGraphicsPixmapItem(
+            QPixmap(":/sprites/a.png").scaled(50, 50, Qt::KeepAspectRatio)
+            );
+        ctrlA->setPos(10, 300); // Posición en el MAPA, no en la ventana
+        ctrlA->setZValue(3);
+        scene->addItem(ctrlA);
+
+        QGraphicsPixmapItem *ctrlS = new QGraphicsPixmapItem(
+            QPixmap(":/sprites/s.png").scaled(50, 50, Qt::KeepAspectRatio)
+            );
+        ctrlS->setPos(65, 300);
+        ctrlS->setZValue(3);
+        scene->addItem(ctrlS);
+
+        QGraphicsPixmapItem *ctrlD = new QGraphicsPixmapItem(
+            QPixmap(":/sprites/d.png").scaled(50, 50, Qt::KeepAspectRatio)
+            );
+        ctrlD->setPos(120, 300); // Posición en el MAPA, no en la ventana
+        ctrlD->setZValue(3);
+        scene->addItem(ctrlD);
+
+
+        QGraphicsPixmapItem *ctrlSpace = new QGraphicsPixmapItem(
+            QPixmap(":/sprites/space.png").scaled(120, 1200, Qt::KeepAspectRatio)
+            );
+        ctrlSpace->setPos(80, 400);
+        ctrlSpace->setZValue(3);
+        scene->addItem(ctrlSpace);
+
+
+        QGraphicsPixmapItem *ctrlJ = new QGraphicsPixmapItem(
+            QPixmap(":/sprites/j.png").scaled(50, 50, Qt::KeepAspectRatio)
+            );
+        ctrlJ->setPos(200, 300);
+        ctrlJ->setZValue(3);
+        scene->addItem(ctrlJ);
 
         for (const QPointF &p : posicionesMonedas) {
             QGraphicsPixmapItem *m = new QGraphicsPixmapItem(
@@ -295,9 +386,9 @@ void niveles::crearPlataformas()
         scene->addItem(suelo);
 
         const std::vector<PlataformaInfo> plataformas = {
-            {420, 620, 220, 20, QColor("#6F4E37")},
-            {700, 500, 180, 20, QColor("#855E42")},
-            {950, 700, 160, 20, QColor("#6F4E37")}
+            {420, 620, 220, 20, QColor(0,0,0,255)},
+            {700, 500, 180, 20, QColor(0,0,0,255)},
+            {950, 700, 160, 20, QColor(0,0,0,255)}
         };
 
         for (const auto &plataforma : plataformas) {
@@ -310,21 +401,11 @@ void niveles::crearPlataformas()
     else if(nivelActual == 1){
 
     const std::vector<PlataformaInfo> plataformas = {
-        {420, 620, 220, 20, QColor("#6F4E37")},
-        {700, 500, 180, 20, QColor("#855E42")},
-        {950, 700, 160, 20, QColor("#6F4E37")},
-        {1160, 660, 200, 20, QColor("#855E42")},
-        {1400, 700, 180, 20, QColor("#6F4E37")},
-        {1600, 650, 160, 20, QColor("#855E42")},
-        {1800, 690, 150, 20, QColor("#6F4E37")},
-        {1980, 650, 180, 20, QColor("#855E42")},
-        {2200, 700, 200, 20, QColor("#6F4E37")},
-        {2420, 660, 220, 20, QColor("#855E42")},
-        {2660, 710, 160, 20, QColor("#6F4E37")},
-        {2880, 670, 190, 20, QColor("#855E42")},
-        {3100, 720, 210, 20, QColor("#6F4E37")},
-        {3340, 660, 180, 20, QColor("#855E42")},
-        {3560, 700, 220, 20, QColor("#6F4E37")}
+        {470, 520, 220, 20, QColor(0,0,0,255)},
+        {700, 290, 180, 20, QColor(0,0,200,255)},
+        {800, 600, 160, 20, QColor(0,0,0,255)},
+        {1160, 660, 200, 20, QColor(0,0,0,255)},
+        {1400, 700, 180, 20, QColor(0,0,0,255)}
     };
 
     for (const auto &plataforma : plataformas) {
@@ -333,7 +414,7 @@ void niveles::crearPlataformas()
 
     const int levelWidth = static_cast<int>(scene->sceneRect().width());
     QGraphicsRectItem *suelo = new QGraphicsRectItem(0, 780, levelWidth, 40);
-    suelo->setBrush(QColor("#5B3A29"));   // marrón
+    suelo->setBrush(QColor(0,0,0,255));   // marrón
     suelo->setPen(Qt::NoPen);
     suelo->setZValue(1);
     suelo->setData(0, QVariant(QStringLiteral("suelo")));
@@ -353,31 +434,34 @@ void niveles::generarCentinelas()
             // Crear 2 enemigos a izquierda y derecha
             for (int i = 0; i < 2; i++) {
 
-                // ENEMIGO IZQUIERDA
+                // ENEMIGO IZQUIERDA  (entra por -100 → debe mirar hacia la derecha)
                 enemigos *eL = new enemigos(this);
                 eL->setPos(-100, 500);
                 eL->setZValue(2);
-                eL->habilitarCampo(player);   // <<--- ACTIVAMOS CAMPO
+                eL->habilitarCampo(player);
+                eL->setDireccion(true);      // → mirando a la derecha
                 centinelas.append(eL);
                 scene->addItem(eL);
 
-                // ENEMIGO DERECHA
+                // ENEMIGO DERECHA  (entra por width+100 → debe mirar hacia la izquierda)
                 enemigos *eR = new enemigos(this);
                 eR->setPos(scene->sceneRect().width() + 100, 500);
                 eR->setZValue(2);
-                eR->habilitarCampo(player);   // <<--- ACTIVAMOS CAMPO
+                eR->habilitarCampo(player);
+                eR->setDireccion(false);     // ← mirando a la izquierda
                 centinelas.append(eR);
                 scene->addItem(eR);
+
             }
         });
 
-        timerOleadas->start(4000); // cada 4 segundos
+        timerOleadas->start(2000); // cada 4 segundos
         return;
     }
 
     else if (nivelActual ==1){
     const QList<QPointF> posiciones = {
-        {520, 650},
+        {520, 750},
         {1220, 620},
         {2100, 640},
         {3000, 650}

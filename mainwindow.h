@@ -1,6 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+extern bool nivel1Completado;
+extern bool nivel2Completado;
+
 #include <QMainWindow>
 #include "registro.h"
 #include "niveles.h"
@@ -27,5 +30,8 @@ private:
     Registro registro;
     niveles *game;
 };
+
+
+
 
 #endif // MAINWINDOW_H

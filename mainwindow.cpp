@@ -5,6 +5,8 @@
 #include <QMessageBox>
 #include <QString>
 
+bool nivel1Completado = false;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -63,6 +65,13 @@ void MainWindow::on_btnNivel2_clicked() {
 }
 
 void MainWindow::on_btnNivel3_clicked() {
+
+    if (!nivel1Completado) {
+        QMessageBox::warning(this, "Bloqueado",
+                             "Debe completar primero el Nivel 1.");
+        return;
+    }
+
     game = new niveles(3, nullptr);  // importante: nullptr para que no se cierre toda la app
 
     connect(game, &niveles::gameOver, this, [this](QString motivo){

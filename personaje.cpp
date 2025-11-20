@@ -11,11 +11,11 @@ personaje::personaje() {
     vidasMax = 3;
 
     hitbox = new QGraphicsRectItem(100, 130, 80, 50, this);
-    hitbox->setBrush(QBrush(QColor(255, 0, 0, 100)));  // rojo semitransparente
+    hitbox->setBrush(QBrush(QColor(255, 0, 0, 0)));  // rojo semitransparente
     hitbox->setPen(Qt::NoPen);
 
     hitboxAtaque = new QGraphicsRectItem(0, 0, 80, 60, this);
-    hitboxAtaque->setBrush(QColor(255, 0, 0, 80));
+    hitboxAtaque->setBrush(QColor(255, 0, 0, 0));
     hitboxAtaque->setPen(Qt::NoPen);
     hitboxAtaque->hide();
 
@@ -62,9 +62,9 @@ QRectF personaje::posHitbox(){
 
 void personaje::perderVida() {
 
-    if (invulnerable) return;  // ← evita recibir daño 2 veces en el mismo frame
+    if (invulnerable) return;
 
-    invulnerable = true;       // ← activa invulnerabilidad temporal
+    invulnerable = true;
 
     vidas--;
     if (vidas < 0) vidas = 0;
@@ -81,14 +81,6 @@ void personaje::perderVida() {
 void personaje::morir() {
     qDebug() << "Jugador murió";
 
-    // Puedes cambiar animación:
-    // animacionActual = &framesDeath;
-
-    // Puedes reiniciar nivel:
-    // setPos(puntoRespawn);
-
-    // Puedes emitir una señal Qt al nivel:
-    // emit jugadorMurio();
 }
 
 
@@ -174,7 +166,6 @@ void personaje::deslizar() {
     frameActual = 0;
 
     // --- Aumentar velocidad según dirección ---
-    float velocidadOriginal = velocidadX;
     velocidadX = mirandoDerecha ? velocidad + 2 : -velocidad - 2;
 
     // --- Recuperar estado normal ---

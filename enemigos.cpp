@@ -11,21 +11,72 @@
 #include <QVariant>
 
 enemigos::enemigos(QObject *parent)
-    : QObject(parent), velX(0.0f), velY(0.0f), radioVision(80.0), objetivoEnVision(false), areaVision(nullptr) {
+    : QObject(parent),
+    velX(0.0f),
+    velY(0.0f),
+    radioVision(100.0),
+    objetivoEnVision(false),
+    areaVision(nullptr),
+    modoCampo(false),
+    masa(1.0f),
+    velocidadCampo(0,0)
+{
     setData(0, QVariant(QStringLiteral("enemigo_centinela")));
+    spriteSheet.load(":/sprites/enemigo1.png");
 
-    spriteReposo = crearSpriteCentinela(QColor(255, 180, 0, 245), QColor(120, 60, 0, 255), QColor(35, 40, 45, 230),
-                                        QColor(120, 220, 255, 220));
-    spriteAlerta = crearSpriteCentinela(QColor(255, 100, 60, 250), QColor(120, 30, 0, 255), QColor(120, 10, 10, 230),
-                                       QColor(255, 240, 180, 230));
-    aplicarSprite(spriteReposo);
+    // Calcular tamaño de un frame
+    int frameWidth  = spriteSheet.width()  / 10;  // si tu fila más larga tiene 10 frames
+    int frameHeight = spriteSheet.height() / 8;   // si tu spritesheet tiene 8 filas
 
-    // Área de visión visible (centinela)
-    areaVision = new QGraphicsEllipseItem(-radioVision, -radioVision, radioVision * 2, radioVision * 2, this);
-    areaVision->setBrush(QColor(255, 215, 0, 25));
-    areaVision->setPen(QPen(QColor(255, 215, 0, 160), 2, Qt::DashLine));
-    areaVision->setZValue(-1);  // que no tape al sprite
+    // ← Aquí defines cuántos frames tiene cada animación real:
+    framesIdle   = extraerFrames(1, frameWidth-40, frameHeight-10, 6);  // fila 0, 6 frames
+    framesAlerta = extraerFrames(4, frameWidth-35, frameHeight, 7);  // fila 1, 4 frames
+
+    // Establecer primera animación
+    animacionActual = &framesIdle;
+    frameActual = 0;
+    aplicarSprite(animacionActual->at(0));
+
+    QPolygonF cono;
+    cono << QPointF(0, 0);                     // en la nariz del enemigo
+    cono << QPointF(radioVision, -80);         // arriba
+    cono << QPointF(radioVision,  80);         // abajo
+
+    areaVision = new QGraphicsPolygonItem(cono, this);
+    areaVision->setBrush(QColor(255, 255, 255, 25));
+    areaVision->setPen(QPen(QColor(255, 255, 255, 160), 2));
+    areaVision->setZValue(-1);
+
+    animTimer = new QTimer(this);
+    connect(animTimer, &QTimer::timeout, this, &enemigos::actualizarFrame);
+    animTimer->start(100);
 }
+
+QVector<QPixmap> enemigos::extraerFrames(int fila, int frameWidth, int frameHeight, int cantidad) {
+    QVector<QPixmap> frames;
+    for (int i = 0; i < cantidad; ++i) {
+        frames.append(spriteSheet.copy(i * frameWidth, fila * frameHeight, frameWidth, frameHeight));
+    }
+    return frames;
+}
+
+void enemigos::actualizarFrame()
+{
+    if (!animacionActual || animacionActual->isEmpty())
+        return;
+
+    frameActual = (frameActual + 1) % animacionActual->size();
+
+    QPixmap frame = animacionActual->at(frameActual);
+
+    // Voltear según dirección
+    if (mirandoDerecha)
+        frame = frame.transformed(QTransform().scale(-1, 1));
+
+    aplicarSprite(frame);
+}
+
+
 
 void enemigos::mover()
 {
@@ -56,25 +107,53 @@ void enemigos::mover()
             setPos(pos() + velocidadCampo);
             return;
         }
-// ← IMPORTANTE: no ejecutar patrulla
-    }
 
-    // ------------------
-    // LÓGICA DEL NIVEL 1
-    // ------------------
+    }
 
     if (patrullaMin != patrullaMax) {
 
         setPos(x() + velX, y());
-
         if (x() < patrullaMin) {
             velX = velPatrulla;
+
+            if (!mirandoDerecha) {
+                mirandoDerecha = true;
+                setPixmap(pixmap().transformed(QTransform().scale(-1, 1)));
+                areaVision->setRotation(0);
+            }
         }
         else if (x() > patrullaMax) {
             velX = -velPatrulla;
+
+            if (mirandoDerecha) {
+                mirandoDerecha = false;
+                setPixmap(pixmap().transformed(QTransform().scale(-1, 1)));
+                areaVision->setRotation(180);
+            }
         }
     }
 }
+
+void enemigos::setDireccion(bool derecha)
+{
+    mirandoDerecha = derecha;
+
+    // Voltear sprite
+    QPixmap frame = animacionActual->at(frameActual);
+
+    if (derecha)
+        frame = frame.transformed(QTransform().scale(-1, 1));  // mirar → si tu sprite base mira ←
+    else
+        frame = frame.transformed(QTransform().scale(1, 1));   // mirar ←
+
+    aplicarSprite(frame);
+
+    // Rotar cono de visión si lo usas
+    if (areaVision) {
+        areaVision->setRotation(derecha ? 0 : 180);
+    }
+}
+
 
 
 void enemigos::habilitarCampo(personaje *p)
@@ -84,31 +163,57 @@ void enemigos::habilitarCampo(personaje *p)
     velocidadCampo = QPointF(0, 0);
 }
 
-void enemigos::actualizarVision(const QRectF &objetivo)
+void enemigos::actualizarVision(const QRectF &objetivoRect)
 {
     if (!areaVision)
         return;
 
-    QPointF centroObjetivo = objetivo.center();
-    QLineF distancia(mapToScene(0, 0), centroObjetivo);
+    // --- POSICIÓN ---
+    QPointF enemigoPos = mapToScene(0,0);
+    QPointF jugadorPos = objetivoRect.center();
 
-    bool detectado = distancia.length() <= radioVision;
+    // --- VECTOR jugador - enemigo ---
+    QPointF dirJugador = jugadorPos - enemigoPos;
+    qreal dist = std::hypot(dirJugador.x(), dirJugador.y());
 
-    if (detectado == objetivoEnVision)
+    // --- NORMALIZAR ---
+    if (dist > 0.1)
+        dirJugador /= dist;
+
+    // --- DIRECCIÓN DE MIRADA DEL ENEMIGO ---
+    QPointF dirVision = mirandoDerecha ? QPointF(1,0) : QPointF(-1,0);
+
+    // --- 1) FUERA DEL RADIO? ---
+    if (dist > radioVision) {
+        // Apagar detección
+        if (objetivoEnVision) {
+            objetivoEnVision = false;
+            animacionActual = &framesIdle;
+            frameActual = 0;
+        }
         return;
+    }
 
-    objetivoEnVision = detectado;
+    // --- 2) CÁLCULO DEL ÁNGULO ---
+    float dot = dirVision.x()*dirJugador.x() +
+                dirVision.y()*dirJugador.y();
 
-    const QColor relleno = detectado ? QColor(255, 69, 0, 80)
-                                     : QColor(255, 215, 0, 25);
-    const QColor borde   = detectado ? QColor(220, 20, 60, 200)
-                                   : QColor(255, 215, 0, 160);
+    // Límite de apertura del cono
+    bool dentroCono = (dot > 0.4f);  // ≈ 66 grados
 
-    areaVision->setBrush(relleno);
-    areaVision->setPen(QPen(borde, 2, Qt::DashLine));
+    bool detectado = dentroCono;
 
-    aplicarSprite(objetivoEnVision ? spriteAlerta : spriteReposo);
+    // --- 3) SI CAMBIÓ EL ESTADO ---
+    if (detectado != objetivoEnVision) {
+
+        objetivoEnVision = detectado;
+
+        // Cambiar animación
+        animacionActual = detectado ? &framesAlerta : &framesIdle;
+        frameActual = 0;
+    }
 }
+
 
 
 bool enemigos::jugadorDetectado() const {
@@ -128,48 +233,6 @@ qreal enemigos::rangoVision() const {
     return radioVision;
 }
 
-QPixmap enemigos::crearSpriteCentinela(const QColor &colorBase, const QColor &colorBorde, const QColor &colorVisor,
-                                       const QColor &colorOjos) const {
-    constexpr int lado = 54;
-    QPixmap sprite(lado, lado);
-    sprite.fill(Qt::transparent);
-
-    QPainter painter(&sprite);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-
-    const QRectF cuerpoRect(5, 5, lado - 10, lado - 10);
-
-    QRadialGradient gradCuerpo(cuerpoRect.center(), cuerpoRect.width() / 2.0);
-    gradCuerpo.setColorAt(0.0, colorBase.lighter(140));
-    gradCuerpo.setColorAt(0.65, colorBase);
-    gradCuerpo.setColorAt(1.0, colorBorde);
-
-    painter.setBrush(gradCuerpo);
-    painter.setPen(QPen(colorBorde, 3));
-    painter.drawEllipse(cuerpoRect);
-
-    // Visor frontal
-    QRectF visorRect(lado * 0.2, lado * 0.42, lado * 0.6, lado * 0.22);
-    painter.setBrush(colorVisor);
-    painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(visorRect, lado * 0.12, lado * 0.12);
-
-    // Ojos luminosos
-    painter.setBrush(colorOjos);
-    const qreal ojoRadio = lado * 0.07;
-    painter.drawEllipse(QPointF(lado * 0.36, lado * 0.53), ojoRadio, ojoRadio);
-    painter.drawEllipse(QPointF(lado * 0.64, lado * 0.53), ojoRadio, ojoRadio);
-
-    // Base flotante
-    QRadialGradient gradBase(QPointF(lado / 2.0, lado * 0.82), lado * 0.28);
-    gradBase.setColorAt(0.0, QColor(0, 0, 0, 140));
-    gradBase.setColorAt(1.0, QColor(0, 0, 0, 0));
-
-    painter.setBrush(gradBase);
-    painter.drawEllipse(QRectF(lado * 0.2, lado * 0.72, lado * 0.6, lado * 0.18));
-
-    return sprite;
-}
 
 void enemigos::aplicarSprite(const QPixmap &sprite) {
     setPixmap(sprite);

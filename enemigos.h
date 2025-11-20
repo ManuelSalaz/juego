@@ -1,12 +1,12 @@
 #ifndef ENEMIGOS_H
 #define ENEMIGOS_H
 
-#include <QColor>
-#include <QGraphicsEllipseItem>
-#include <QGraphicsPixmapItem>
 #include <QObject>
-#include <QPointF>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsEllipseItem>
 #include <QPixmap>
+#include <QPointF>
+#include "personaje.h"
 
 class enemigos : public QObject, public QGraphicsPixmapItem {
     Q_OBJECT
@@ -14,34 +14,48 @@ class enemigos : public QObject, public QGraphicsPixmapItem {
 public:
     explicit enemigos(QObject *parent = nullptr);
 
-    // Movimiento muy simple por ahora
     void mover();
-        void configurarPatrulla(double xMin, double xMax, double velocidad);
-
-    // Centinela: actualiza el estado de detección según la posición del objetivo
+    void habilitarCampo(personaje *p);
     void actualizarVision(const QRectF &objetivo);
-    bool jugadorDetectado() const;
-    qreal rangoVision() const;
 
+    bool jugadorDetectado() const;
+    void configurarPatrulla(double xMin, double xMax, double velocidad);
+    qreal rangoVision() const;
+    QVector<QPixmap> extraerFrames(int fila, int ancho, int alto, int cantidad);
+
+    void actualizarFrame();
+    void setDireccion(bool derecha);
 private:
-    double patrullaMin{0};
-    double patrullaMax{0};
-    double velPatrulla{0};
-    qreal limiteIzq;
-    qreal limiteDer;
-    qreal velocidadPatrulla;
-    int direccion = 1;     // 1 = derecha, -1 = izquierda
-    int tiempoEspera = 0;
-    float velX;
-    float velY;
+    // ---- SPRITES ----
+    QPixmap spriteSheet;
+    QVector<QPixmap> framesIdle;
+    QVector<QPixmap> framesAlerta;
+    bool mirandoDerecha = true;
+
+
+    QTimer *animTimer;
+    int frameActual = 0;
+    QVector<QPixmap> *animacionActual = nullptr;
+
+    // ---- VISION ----
+    QGraphicsPolygonItem *areaVision;
     qreal radioVision;
     bool objetivoEnVision;
-    QGraphicsEllipseItem *areaVision;
-    QPixmap spriteReposo;
-    QPixmap spriteAlerta;
 
-    QPixmap crearSpriteCentinela(const QColor &colorBase, const QColor &colorBorde, const QColor &colorVisor,
-                                 const QColor &colorOjos) const;
+    // ---- PATRULLA (nivel 1) ----
+    double patrullaMin = 0;
+    double patrullaMax = 0;
+    double velPatrulla = 0;
+    float velX;
+    float velY;
+
+    // ---- MODO CAMPO (nivel 3) ----
+    personaje *objetivo = nullptr;
+    bool modoCampo = false;
+    float masa;
+    QPointF velocidadCampo;
+
+    // ---- FUNCIONES INTERNAS ----
     void aplicarSprite(const QPixmap &sprite);
 };
 
