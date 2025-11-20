@@ -29,7 +29,40 @@ enemigos::enemigos(QObject *parent)
 
 void enemigos::mover()
 {
-    // Lógica de patrulla
+    // Si estamos en modo campo (nivel 3), ignoramos patrulla
+    if (modoCampo && objetivo) {
+        if (modoCampo && objetivo) {
+
+            QPointF dir = objetivo->posHitbox().center()
+            - sceneBoundingRect().center();
+
+            qreal dist = std::hypot(dir.x(), dir.y());
+            if (dist < 1)
+                return;
+
+            dir /= dist;
+
+            float intensidad = 0.6f;
+            if (dist < 150) intensidad = 1.2f;
+            if (dist < 60)  intensidad = 2.5f;
+
+            QPointF fuerza = dir * intensidad;
+
+            QPointF aceleracion = fuerza / masa;
+            velocidadCampo += aceleracion;
+
+            velocidadCampo *= 0.83f;
+
+            setPos(pos() + velocidadCampo);
+            return;
+        }
+// ← IMPORTANTE: no ejecutar patrulla
+    }
+
+    // ------------------
+    // LÓGICA DEL NIVEL 1
+    // ------------------
+
     if (patrullaMin != patrullaMax) {
 
         setPos(x() + velX, y());
@@ -41,6 +74,14 @@ void enemigos::mover()
             velX = -velPatrulla;
         }
     }
+}
+
+
+void enemigos::habilitarCampo(personaje *p)
+{
+    objetivo = p;
+    modoCampo = true;
+    velocidadCampo = QPointF(0, 0);
 }
 
 void enemigos::actualizarVision(const QRectF &objetivo)

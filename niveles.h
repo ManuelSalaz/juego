@@ -6,6 +6,8 @@
 #include <QTimer>
 #include <QKeyEvent>
 #include <QVector>
+#include <QLabel>
+
 
 #include "personaje.h"
 #include "enemigos.h"
@@ -25,12 +27,20 @@ protected:
 private slots:
     void actualizarEscena();   // si luego quieres mover enemigos, etc.
 
+signals:
+    void gameOver(QString motivo);
+
 private:
+    int monedas = 0;
+    QLabel *textoMonedas;
+    QLabel * textoVidas;
     QGraphicsScene *scene;
     personaje *player;
     QTimer *timerUpdate;
     int nivelActual;
     QVector<enemigos*> centinelas;
+    QVector<QGraphicsPixmapItem*> monedasEscena;
+
 
     void configurarEscenaBase();
     void crearPlataformas();

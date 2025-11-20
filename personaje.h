@@ -12,6 +12,8 @@ class personaje : public QObject, public QGraphicsPixmapItem {
     Q_OBJECT
 
 public:
+    int vidas = 3;        // número total de vidas
+    int vidasMax = 3;     // si quieres limitarlo
     personaje();
     void moverIzquierda();
     void moverDerecha();
@@ -22,16 +24,24 @@ public:
     void deslizar();
     void atacar();
     QRectF posHitbox();
+    void perderVida();
+    QGraphicsRectItem *hitboxAtaque;
+    bool atacando = false;
+
+    void morir();
 private slots:
     void actualizarFrame();
 
 private:
+    bool invulnerable = false;
     enum class EstadoAnimacion { Idle, Run, Jump, Slide, Attack };
-
     QPixmap spriteSheet;
-    QMap<EstadoAnimacion, QVector<QPixmap>> animaciones;
+    QVector<QPixmap> framesIdle;
+    QVector<QPixmap> framesRun;
+    QVector<QPixmap> framesSlide;
     QVector<QPixmap> *animacionActual;
-    EstadoAnimacion estadoActual;
+    QVector<QPixmap> framesJump;
+    QVector<QPixmap> framesAttack;
     float velocidadY = 0;     // velocidad vertical
     float gravedad = 0.8;     // gravedad constante
     bool enSuelo = true;      // para evitar doble salto
@@ -44,10 +54,13 @@ private:
     int coyoteFrames;
     QGraphicsRectItem *hitbox;
     QTimer *animTimer;
-
+    int coyoteCounter = 0;
+    const int COYOTE_FRAMES = 6;
     QVector<QPixmap> extraerFrames(int y, int frameWidth, int frameHeight, int numFrames);
     void cambiarAnimacion(EstadoAnimacion estado, bool reiniciarFrame = false);
     void actualizarDireccion(bool aLaDerecha);
+    int getVidas() const { return vidas; }
+    void setVidas(int v) { vidas = qBound(0, v, vidasMax); }
 
 };
 

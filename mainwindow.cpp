@@ -31,9 +31,29 @@ void MainWindow::on_btnRegistrar_clicked() {
 
 void MainWindow::on_btnNivel1_clicked()
 {
-    game = new niveles(1, this);
-    game->show();
+    game = new niveles(1, nullptr);   // <-- IMPORTANTE: SIN parent
+
+    connect(game, &niveles::gameOver, this, [this](QString motivo){
+
+        this->show();
+        game->close();
+        game->deleteLater();
+        game = nullptr;
+
+        if (motivo == "ganar") {
+            QMessageBox::information(this, "Nivel completado", "¡Felicidades!");
+        }
+        else if (motivo == "muerte") {
+            QMessageBox::information(this, "Fin del juego", "Te quedaste sin vidas.");
+        }
+    });
+
+    this->hide();   // oculta el menú
+    game->show();   // muestra el nivel
 }
+
+
+
 
 
 void MainWindow::on_btnNivel2_clicked() {
@@ -43,7 +63,23 @@ void MainWindow::on_btnNivel2_clicked() {
 }
 
 void MainWindow::on_btnNivel3_clicked() {
-    QMessageBox::information(this, "Nivel 3", "Iniciando Nivel 3...");
-    // game = new niveles(3, this);
-    // game->show();
+    game = new niveles(3, nullptr);  // importante: nullptr para que no se cierre toda la app
+
+    connect(game, &niveles::gameOver, this, [this](QString motivo){
+
+        this->show();
+        game->close();
+        game->deleteLater();
+        game = nullptr;
+
+        if (motivo == "ganar") {
+            QMessageBox::information(this, "Nivel completado", "¡Felicidades!");
+        }
+        else if (motivo == "muerte") {
+            QMessageBox::information(this, "Fin del juego", "Te quedaste sin vidas.");
+        }
+    });
+
+    this->hide();
+    game->show();
 }
