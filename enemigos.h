@@ -8,12 +8,13 @@
 #include <QPointF>
 #include "personaje.h"
 
+
 class enemigos : public QObject, public QGraphicsPixmapItem {
     Q_OBJECT
 
 public:
     explicit enemigos(QObject *parent = nullptr);
-
+    void setVelocidadX(float v) { velX = v; }
     void mover();
     void habilitarCampo(personaje *p);
     void actualizarVision(const QRectF &objetivo);

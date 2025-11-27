@@ -5,10 +5,29 @@
 #include <QPen>
 #include <QString>
 
+float personaje::getVelocidadX() const
+{
+    return velocidadX;
+}
+
 personaje::personaje() {
-    spriteSheet.load(":/sprites/Viking-Sheet.png");
+    sonidoAtaque = new QMediaPlayer(this);
+    audioAtaque = new QAudioOutput(this);
+    sonidoAtaque->setAudioOutput(audioAtaque);
+
+    sonidoAtaque->setSource(QUrl("qrc:/sounds/ataque.mp3"));
+    audioAtaque->setVolume(0.8);
+
+    try {
+        if (!spriteSheet.load(":/sprites/Viking-Sheet.png"))
+            throw std::runtime_error("No se pudo cargar el sprite del personaje");
+    } catch (const std::exception &e) {
+        qDebug() << "ERROR:" << e.what();
+    }
+
     vidas = 3;
     vidasMax = 3;
+    stats.vida = vidas;
 
     hitbox = new QGraphicsRectItem(100, 130, 80, 50, this);
     hitbox->setBrush(QBrush(QColor(255, 0, 0, 0)));  // rojo semitransparente
@@ -54,6 +73,7 @@ QVector<QPixmap> personaje::extraerFrames(int y, int frameWidth, int frameHeight
     return frames;
 }
 
+
 QRectF personaje::posHitbox(){
     return hitbox->sceneBoundingRect();
 
@@ -66,8 +86,8 @@ void personaje::perderVida() {
 
     invulnerable = true;
 
-    vidas--;
-    if (vidas < 0) vidas = 0;
+    stats.recibirDaño(1);
+    vidas = stats.vida;
 
     qDebug() << "Vidas restantes:" << vidas;
 
@@ -184,6 +204,9 @@ void personaje::deslizar() {
 
 void personaje::atacar() {
     if (accionEspecialActiva) return;
+
+    sonidoAtaque->stop();
+    sonidoAtaque->play();
 
     accionEspecialActiva = true;
     atacando = true;

@@ -7,10 +7,15 @@
 #include <QKeyEvent>
 #include <QVector>
 #include <QLabel>
+#include <QMediaPlayer>
+#include <QAudioOutput>
 
 
 #include "personaje.h"
 #include "enemigos.h"
+#include "proyectil.h"
+
+
 
 class niveles : public QGraphicsView
 {
@@ -18,7 +23,7 @@ class niveles : public QGraphicsView
 
 public:
     explicit niveles(int numNivel = 1, QWidget *parent = nullptr);
-
+\
     void mostrarMensajeBloqueo();
 protected:
     // Para capturar el teclado en este nivel
@@ -32,6 +37,13 @@ signals:
     void gameOver(QString motivo);
 
 private:
+    int enemigosEliminados = 0;
+    int enemigosMetaNivel3 = 15;
+    float velocidadBombas = 6.0f;
+    QList<Proyectil*> proyectiles;
+    int tiempoNivel2 = 0;
+    QMediaPlayer *musicaFondo;
+    QAudioOutput *audioSalida;
     QLabel *mensajeBloqueoAtaque = nullptr;
     bool jugadorRecibiendoDaño = false;
     int monedas = 0;
@@ -48,6 +60,7 @@ private:
     void configurarEscenaBase();
     void crearPlataformas();
     void generarCentinelas();
+    void actualizarProyectilesNivel2();
 };
 
 #endif // NIVELES_H

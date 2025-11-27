@@ -7,11 +7,17 @@
 #include <QTimer>
 #include <QVector>
 #include <QMap>
+#include <QMediaPlayer>
+#include <QAudioOutput>
+#include "entidad.h"
+
 
 class personaje : public QObject, public QGraphicsPixmapItem {
     Q_OBJECT
 
 public:
+    float getVelocidadX() const;
+    Entidad stats;
     int vidas = 3;        // número total de vidas
     int vidasMax = 3;     // si quieres limitarlo
     personaje();
@@ -19,7 +25,6 @@ public:
     void moverDerecha();
     void parar();
     void saltar();
-
     void actualizarFisica();
     void deslizar();
     void atacar();
@@ -33,6 +38,8 @@ private slots:
     void actualizarFrame();
 
 private:
+    QMediaPlayer *sonidoAtaque;
+    QAudioOutput *audioAtaque;
     bool invulnerable = false;
     enum class EstadoAnimacion { Idle, Run, Jump, Slide, Attack };
     QPixmap spriteSheet;

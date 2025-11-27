@@ -6,6 +6,7 @@
 #include <vector>
 #include <utility>
 #include <QMessageBox>
+#include <QRandomGenerator>
 
 namespace {
 
@@ -38,6 +39,50 @@ niveles::niveles(int numNivel, QWidget *parent)
     timerUpdate(new QTimer(this)),
     nivelActual(numNivel)
 {
+
+    musicaFondo = new QMediaPlayer(this);
+    audioSalida = new QAudioOutput(this);
+    musicaFondo->setAudioOutput(audioSalida);
+
+    if (nivelActual == 1) {
+        try {
+            musicaFondo->setSource(QUrl("qrc:/sounds/nivel1_music.mp3"));
+            if (musicaFondo->source().isEmpty())
+                throw std::runtime_error("No se pudo cargar la música del nivel 1");
+        } catch (const std::exception &e) {
+            qDebug() << "ERROR:" << e.what();
+        }
+        audioSalida->setVolume(0.5);   // volumen entre 0.0 y 1.0
+        musicaFondo->setLoops(QMediaPlayer::Infinite);
+        musicaFondo->play();
+    }
+
+    else if (nivelActual == 2) {
+        try {
+            musicaFondo->setSource(QUrl("qrc:/sounds/bomb.mp3"));
+            if (musicaFondo->source().isEmpty())
+                throw std::runtime_error("No se pudo cargar la música del nivel 1");
+        } catch (const std::exception &e) {
+            qDebug() << "ERROR:" << e.what();
+        }
+        audioSalida->setVolume(0.5);   // volumen entre 0.0 y 1.0
+        musicaFondo->setLoops(QMediaPlayer::Infinite);
+        musicaFondo->play();
+    }
+
+    else if (nivelActual == 3) {
+        try {
+            musicaFondo->setSource(QUrl("qrc:/sounds/epic.mp3"));
+            if (musicaFondo->source().isEmpty())
+                throw std::runtime_error("No se pudo cargar la música del nivel 1");
+        } catch (const std::exception &e) {
+            qDebug() << "ERROR:" << e.what();
+        }
+        audioSalida->setVolume(0.5);   // volumen entre 0.0 y 1.0
+        musicaFondo->setLoops(QMediaPlayer::Infinite);
+        musicaFondo->play();
+    }
+
     // -- Visor de vidas ---
     textoVidas = new QLabel(this);
     textoVidas->setText("Vidas: 3");
@@ -45,12 +90,21 @@ niveles::niveles(int numNivel, QWidget *parent)
     textoVidas->move(10, 10); // esquina superior
     textoVidas->raise();
 
+
+
+
     // -- Monedas
     textoMonedas = new QLabel(this);
     textoMonedas->setText("Monedas: 0");
     textoMonedas->setStyleSheet("color: yellow; font-size: 20px;");
     textoMonedas->move(10, 40); // debajo del contador de vidas
     textoMonedas->raise();
+
+    if (nivelActual == 3) {
+        textoMonedas->setText("Puntos: 0");
+        textoMonedas->setStyleSheet("color: red; font-size: 20px;");
+        textoMonedas->setFixedWidth(300);
+    }
 
 
 
@@ -74,9 +128,14 @@ niveles::niveles(int numNivel, QWidget *parent)
 
     if (nivelActual == 3) {
         player->setPos(scene->sceneRect().width() / 2, 500);
-    } else {
+    }
+    else if (nivelActual == 2) {
+        player->setPos(400, 650);  // barco abajo
+    }
+    else {
         player->setPos(100, 550);
     }
+
 
     crearPlataformas();
 
@@ -99,11 +158,29 @@ void niveles::mostrarMensajeBloqueo()
     QTimer::singleShot(1500, this, [this]() {
         mensajeBloqueoAtaque->hide();
     });
+
+
 }
 
 void niveles::actualizarEscena()
 {
+
     if (!player) return;
+
+    if (nivelActual == 2) {
+
+        // mantener solo el movimiento horizontal
+        player->setPos(player->x() + player->getVelocidadX(), player->y());
+
+        // limitar al rango visible
+        if (player->x() < 0) player->setPos(0, player->y());
+        if (player->x() > 1500) player->setPos(1500, player->y());
+
+        // PROCESAR PROYECTILES
+        actualizarProyectilesNivel2();
+
+        return; // MUY IMPORTANTE: evita usar la física normal
+    }
 
     player->actualizarFisica();
 
@@ -187,14 +264,33 @@ void niveles::actualizarEscena()
     if (player->atacando) {
         QRectF golpe = player->hitboxAtaque->sceneBoundingRect();
 
-        for (int i = centinelas.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < centinelas.size(); i++) {
             enemigos *e = centinelas[i];
             if (!e) continue;
 
             if (golpe.intersects(e->sceneBoundingRect())) {
+
                 scene->removeItem(e);
-                delete e;
                 centinelas.removeAt(i);
+                delete e;
+
+                if (nivelActual == 3) {
+                    enemigosEliminados++;
+                    textoMonedas->setText(
+                        QString("Puntos: %1").arg(enemigosEliminados)
+                        );
+                    qDebug() << " eliminados:" << enemigosEliminados;
+
+                    // 🔥 Condición de victoria AQUÍ
+                    if (enemigosEliminados >= enemigosMetaNivel3) {
+                        QMessageBox::information(this, "¡Victoria!",
+                                                 "Has eliminado a todos los enemigos.");
+                        emit gameOver("ganar");
+                        return;
+                    }
+                }
+
+                return;   // ← RETURN CORRECTO (solo 1)
             }
         }
     }
@@ -220,10 +316,60 @@ void niveles::actualizarEscena()
             }
         }
     }
+
+    if (nivelActual == 2) {
+
+        QRectF boxJugador = player->posHitbox();
+
+        for (int i = proyectiles.size() - 1; i >= 0; i--) {
+            Proyectil *p = proyectiles[i];
+            p->actualizar();
+
+            // afuera de pantalla
+            if (p->y() > 900) {
+                scene->removeItem(p);
+                proyectiles.removeAt(i);
+                delete p;
+                continue;
+            }
+
+            // colisión con el barco
+            if (boxJugador.intersects(p->sceneBoundingRect())) {
+                scene->removeItem(p);
+                proyectiles.removeAt(i);
+                delete p;
+
+                player->perderVida();
+                textoVidas->setText(QString("Vidas: %1").arg(player->vidas));
+
+                if (player->vidas <= 0) {
+                    emit gameOver("muerte");
+                    return;
+                }
+            }
+        }
+
+        tiempoNivel2++;
+
+        // superar nivel 2 al sobrevivir 15 segundos
+        if (tiempoNivel2 >= 16 * 60) {
+            QMessageBox::information(this, "¡Nivel Completado!", "Has esquivado todos los disparos.");
+            emit gameOver("ganar");
+            return;
+        }
+    }
+
 }
 
 void niveles::keyPressEvent(QKeyEvent *event)
 {
+
+    if (nivelActual == 2) {
+        if (event->key() == Qt::Key_A) player->moverIzquierda();
+        else if (event->key() == Qt::Key_D) player->moverDerecha();
+        return;
+    }
+
     switch (event->key()) {
     case Qt::Key_A:
         player->moverIzquierda();
@@ -252,6 +398,11 @@ void niveles::keyPressEvent(QKeyEvent *event)
 
 void niveles::keyReleaseEvent(QKeyEvent *event)
 {
+    if (nivelActual == 2 && (event->key() == Qt::Key_A || event->key() == Qt::Key_D)) {
+        player->parar();
+        return;
+    }
+
     if (event->key() == Qt::Key_A || event->key() == Qt::Key_D) {
         player->parar();
     } else {
@@ -338,10 +489,27 @@ void niveles::configurarEscenaBase()
     }
 
     else if (nivelActual == 2) {
-        bg.load(":/backgrounds/background_nivel3.jpg");  // pon el nombre que tengas en tu .qrc
+
+        QPixmap bg(":/backgrounds/mar.jpg");
+
+        // Escalar al tamaño de la escena
+        bg = bg.scaled(1600, 800, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+        scene->setSceneRect(0, 0, 1600, 800);
+
+        QGraphicsPixmapItem *background = new QGraphicsPixmapItem(bg);
+        background->setPos(0, 0);
+        background->setZValue(0);
+
+        scene->addItem(background);
+
+        resetTransform();
+        scale(0.9, 0.9);
+        return;
     }
+
     else if (nivelActual == 3) {
-        scene->setSceneRect(0, 0, 1600, 800);  // tamaño pequeño tipo arena
+        scene->setSceneRect(0, 0, 1600, 800);
         QPixmap bg(":/backgrounds/background3.jpg");
         QGraphicsPixmapItem *background = new QGraphicsPixmapItem(bg);
         background->setPos(0, 0);
@@ -459,6 +627,28 @@ void niveles::generarCentinelas()
         return;
     }
 
+    else if (nivelActual == 2) {
+        QTimer *timerProyectiles = new QTimer(this);
+
+        connect(timerProyectiles, &QTimer::timeout, this, [this]() {
+
+            int xRand = QRandomGenerator::global()->bounded(50, 1500);
+
+            Proyectil *p = new Proyectil(
+                QPixmap(":/sprites/proyectil.png").scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation)
+                );
+
+            p->setPos(xRand, -50);
+            p->setZValue(3);
+
+            proyectiles.append(p);
+            scene->addItem(p);
+        });
+
+        timerProyectiles->start(220); // 1 proyectil cada 0.7s
+        return;
+    }
+
     else if (nivelActual ==1){
     const QList<QPointF> posiciones = {
         {520, 750},
@@ -472,8 +662,69 @@ void niveles::generarCentinelas()
         centinela->setZValue(2);
         centinela->setPos(pos);
         centinela->configurarPatrulla(pos.x() - 80, pos.x() + 80, 1.2);
+
+        // Alternar dirección inicial
+        static bool alternar = false;
+
+        if (alternar) {
+            centinela->setDireccion(false);  // empezar mirando a la izquierda
+            centinela->setVelocidadX(-1.2f);
+        } else {
+            centinela->setDireccion(true);   // empezar mirando a la derecha
+            centinela->setVelocidadX(1.2f);
+        }
+
+        alternar = !alternar;
         centinelas.append(centinela);
         scene->addItem(centinela);
     }
     }
 }
+
+void niveles::actualizarProyectilesNivel2()
+{
+    QRectF boxJugador = player->posHitbox();
+
+    if (tiempoNivel2 % 120 == 0) {     // cada 2 segundos
+        velocidadBombas += 0.4;        // aumenta velocidad gradualmente
+    }
+
+    for (int i = proyectiles.size() - 1; i >= 0; i--) {
+        Proyectil *p = proyectiles[i];
+        p->setY(p->y() + velocidadBombas);
+
+        // Si sale de la pantalla
+        if (p->y() > 900) {
+            scene->removeItem(p);
+            proyectiles.removeAt(i);
+            delete p;
+            continue;
+        }
+
+        // Colisión con el jugador (barco)
+        if (boxJugador.intersects(p->sceneBoundingRect())) {
+            scene->removeItem(p);
+            proyectiles.removeAt(i);
+            delete p;
+
+            player->perderVida();
+            textoVidas->setText(QString("Vidas: %1").arg(player->vidas));
+
+            if (player->vidas <= 0) {
+                emit gameOver("muerte");
+                return;
+            }
+        }
+    }
+
+    tiempoNivel2++;
+
+    // 15 segundos → nivel superado
+    if (tiempoNivel2 >= 20 * 60) {
+        QMessageBox::information(this, "¡Nivel Completado!", "Has esquivado todos los disparos.");
+        nivel2Completado = true;
+        emit gameOver("ganar");
+        return;
+    }
+}
+
