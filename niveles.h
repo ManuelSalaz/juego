@@ -37,6 +37,7 @@ signals:
     void gameOver(QString motivo);
 
 private:
+    QList<Entidad*> entidades;
     int enemigosEliminados = 0;
     int enemigosMetaNivel3 = 15;
     float velocidadBombas = 6.0f;

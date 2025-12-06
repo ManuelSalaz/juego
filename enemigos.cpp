@@ -12,6 +12,7 @@
 
 enemigos::enemigos(QObject *parent)
     : QObject(parent),
+    Entidad(TipoEntidad::Enemigo),
     velX(0.0f),
     velY(0.0f),
     radioVision(100.0),
@@ -21,8 +22,12 @@ enemigos::enemigos(QObject *parent)
     masa(1.0f),
     velocidadCampo(0,0)
 {
+    vida = 2;
     setData(0, QVariant(QStringLiteral("enemigo_centinela")));
     spriteSheet.load(":/sprites/enemigo1.png");
+
+    zonaPatrullaIzq = x() - 60;
+    zonaPatrullaDer = x() + 60;
 
     // Calcular tamaño de un frame
     int frameWidth  = spriteSheet.width()  / 10;  // si tu fila más larga tiene 10 frames
@@ -77,19 +82,28 @@ void enemigos::actualizarFrame()
 }
 
 
+void enemigos::moverBase() {
+    setX(x() + velX);
+    setY(y() + velY);
+}
+
+void enemigos::actualizar() {
+    mover();
+}
+
 
 void enemigos::mover()
 {
-    // Si estamos en modo campo (nivel 3), ignoramos patrulla
+    // =======================
+    // 1) MODO CAMPO (NIVEL 3)
+    // =======================
     if (modoCampo && objetivo) {
-        if (modoCampo && objetivo) {
 
-            QPointF dir = objetivo->posHitbox().center()
-            - sceneBoundingRect().center();
+        QPointF dir = objetivo->posHitbox().center()
+        - sceneBoundingRect().center();
 
-            qreal dist = std::hypot(dir.x(), dir.y());
-            if (dist < 1)
-                return;
+        qreal dist = std::hypot(dir.x(), dir.y());
+        if (dist > 1.0) {
 
             dir /= dist;
 
@@ -98,22 +112,64 @@ void enemigos::mover()
             if (dist < 60)  intensidad = 2.5f;
 
             QPointF fuerza = dir * intensidad;
-
             QPointF aceleracion = fuerza / masa;
             velocidadCampo += aceleracion;
 
             velocidadCampo *= 0.83f;
-
             setPos(pos() + velocidadCampo);
-            return;
         }
 
+        return;
     }
 
+
+    // ==========================
+    // 2) PERSECUCIÓN (NIVEL 1)
+    // ==========================
+    // ==========================
+    // 2) PERSECUCIÓN (NIVEL 1)
+    // ==========================
+    if (enPersecucion) {
+
+        // Si aún lo ve → usar posición fresca
+        if (objetivoEnVision) {
+            ultimaPosJugador = jugadorPosActual;
+        }
+
+        // Perseguir dirección del jugador
+        if (ultimaPosJugador.x() > x()) {
+            velX = 1.8f;
+            setDireccion(true);
+        } else {
+            velX = -1.8f;
+            setDireccion(false);
+        }
+
+        setX(x() + velX);
+
+        // La persecución solo termina si
+        // 1) ya NO lo ve
+        // 2) y llegó a la última posición donde lo vio
+        if (!objetivoEnVision && fabs(x() - ultimaPosicionVisto) < 25) {
+            enPersecucion = false;
+            velX = velPatrulla;
+        }
+
+        return;
+    }
+
+
+
+    // ============================
+    // 3) PATRULLA NORMAL (NIVEL 1)
+    // ============================
     if (patrullaMin != patrullaMax) {
 
-        setPos(x() + velX, y());
-        if (x() < patrullaMin) {
+        velY = 0;
+        moverBase();
+
+        // Límite izquierdo
+        if (x() < zonaPatrullaIzq) {
             velX = velPatrulla;
 
             if (!mirandoDerecha) {
@@ -122,7 +178,9 @@ void enemigos::mover()
                 areaVision->setRotation(0);
             }
         }
-        else if (x() > patrullaMax) {
+
+        // Límite derecho
+        else if (x() > zonaPatrullaDer) {
             velX = -velPatrulla;
 
             if (mirandoDerecha) {
@@ -168,49 +226,61 @@ void enemigos::actualizarVision(const QRectF &objetivoRect)
     if (!areaVision)
         return;
 
-    // --- POSICIÓN ---
     QPointF enemigoPos = mapToScene(0,0);
     QPointF jugadorPos = objetivoRect.center();
 
-    // --- VECTOR jugador - enemigo ---
+    ultimaPosJugador = jugadorPos;
+    jugadorPosActual = jugadorPos;
+
     QPointF dirJugador = jugadorPos - enemigoPos;
     qreal dist = std::hypot(dirJugador.x(), dirJugador.y());
 
-    // --- NORMALIZAR ---
     if (dist > 0.1)
         dirJugador /= dist;
 
-    // --- DIRECCIÓN DE MIRADA DEL ENEMIGO ---
     QPointF dirVision = mirandoDerecha ? QPointF(1,0) : QPointF(-1,0);
 
-    // --- 1) FUERA DEL RADIO? ---
-    if (dist > radioVision) {
-        // Apagar detección
+    // Fuera de rango
+    if (dist > radioVision)
+    {
         if (objetivoEnVision) {
             objetivoEnVision = false;
             animacionActual = &framesIdle;
             frameActual = 0;
+            enPersecucion = true;
         }
         return;
     }
 
-    // --- 2) CÁLCULO DEL ÁNGULO ---
-    float dot = dirVision.x()*dirJugador.x() +
-                dirVision.y()*dirJugador.y();
+    float dot = dirVision.x()*dirJugador.x() + dirVision.y()*dirJugador.y();
+    bool detectado = (dot > 0.4f);
 
-    // Límite de apertura del cono
-    bool dentroCono = (dot > 0.4f);  // ≈ 66 grados
-
-    bool detectado = dentroCono;
-
-    // --- 3) SI CAMBIÓ EL ESTADO ---
     if (detectado != objetivoEnVision) {
 
         objetivoEnVision = detectado;
 
-        // Cambiar animación
         animacionActual = detectado ? &framesAlerta : &framesIdle;
         frameActual = 0;
+
+        if (detectado) {
+
+            // ⭐ NUEVO: centro de patrullaje es donde te encontró
+            float centro = jugadorPos.x();
+            float rango  = 90.0f;  // Puedes ajustar
+
+            zonaPatrullaIzq = centro - rango;
+            zonaPatrullaDer = centro + rango;
+
+            // Actualizar límites reales
+            patrullaMin = zonaPatrullaIzq;
+            patrullaMax = zonaPatrullaDer;
+
+            ultimaPosicionVisto = jugadorPos.x();
+            enPersecucion = true;
+        }
+        else {
+            enPersecucion = true;
+        }
     }
 }
 
@@ -227,6 +297,10 @@ void enemigos::configurarPatrulla(double xMin, double xMax, double velocidad)
     velPatrulla = velocidad;
 
     velX = velocidad; // empieza moviéndose a la derecha
+
+    zonaPatrullaIzq = patrullaMin;
+    zonaPatrullaDer = patrullaMax;
+
 }
 
 qreal enemigos::rangoVision() const {
